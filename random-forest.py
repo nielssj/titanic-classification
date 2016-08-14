@@ -13,7 +13,7 @@ test = pd.read_csv('data/test.csv')
 ''' CLEAN '''
 clean_data(train)
 clean_data(test)
-features = ['isFemale', 'Age', 'Parch', 'SibSp', 'Pclass', 'Embarked', 'Fare']
+features = ['isFemale', 'Age', 'Parch', 'SibSp', 'Pclass', 'Fare']
 X = train.as_matrix(features)
 Y = train['Survived'].as_matrix()
 
@@ -58,4 +58,4 @@ result['Survived'] = clf.predict(test.as_matrix(features))
 ''' OUTPUT '''
 if not os.path.exists('results'):
     os.makedirs('results')
-result.to_csv('results/random-forest4.csv', index=False)
+result.to_csv('results/random-forest5.csv', index=False)
