@@ -6,7 +6,13 @@ from pyspark.sql import SparkSession
 # noinspection PyUnresolvedReferences
 from pyspark.mllib.regression import LabeledPoint
 # noinspection PyUnresolvedReferences
-from pyspark.mllib.tree import RandomForest
+from pyspark.ml.classification import RandomForestClassifier
+# noinspection PyUnresolvedReferences
+from pyspark.ml.tuning import CrossValidator, ParamGridBuilder
+# noinspection PyUnresolvedReferences
+from pyspark.ml.evaluation import BinaryClassificationEvaluator
+# noinspection PyUnresolvedReferences
+from pyspark.ml.linalg import Vectors
 
 spark = SparkSession\
     .builder\
@@ -38,15 +44,29 @@ def clean_data(passenger):
         clean_row['isFemale'] = 0
     if 'Survived' in passenger:
         clean_row['Survived'] = passenger['Survived']
-    return clean_row
+    return float(clean_row['Survived']), Vectors.dense(clean_row['Age'], clean_row['isFemale'])
 
 train2 = train.rdd.map(clean_data)
+train2_df = spark.createDataFrame(train2, ['label', 'features'])
 test2 = test.rdd.map(clean_data)
+test2_df = spark.createDataFrame(test2)
 
 
-''' TRAIN '''
-train2 = train2.map(lambda p: LabeledPoint(p['Survived'], [p['Age'], p['isFemale']]))
-model = RandomForest.trainClassifier(train2, 2, {}, 3, seed=42)
+''' TUNE AND TRAIN '''
+
+rf = RandomForestClassifier()
+
+paramGrid = ParamGridBuilder() \
+    .addGrid(rf.numTrees, [10, 25, 50, 75, 100]) \
+    .build()
+
+crossval = CrossValidator(estimator=rf,
+                          estimatorParamMaps=paramGrid,
+                          evaluator=BinaryClassificationEvaluator(),
+                          numFolds=3)
+
+# Run cross-validation, and choose the best set of parameters.
+model = crossval.fit(train2_df)
 
 
 ''' TEST '''
